@@ -3,12 +3,13 @@
 ## Table des matières
 1. [Introduction](#introduction)
 2. [Accès à l'Application](#accès-à-lapplication)
-3. [Fonctionnalités](#fonctionnalités)
-4. [Guide d'Utilisation](#guide-dutilisation)
-5. [Interprétation des Résultats](#interprétation-des-résultats)
-6. [FAQ](#faq)
-7. [Exemples d'Utilisation](#exemples-dutilisation)
-8. [Cas d'Usage Courants](#cas-dusage-courants)
+3. [Utilisation de Jupyter](#utilisation-de-jupyter)
+4. [Fonctionnalités](#fonctionnalités)
+5. [Guide d'Utilisation](#guide-dutilisation)
+6. [Interprétation des Résultats](#interprétation-des-résultats)
+7. [FAQ](#faq)
+8. [Exemples d'Utilisation](#exemples-dutilisation)
+9. [Cas d'Usage Courants](#cas-dusage-courants)
 
 ## Introduction
 Cette application web permet de visualiser et d'analyser la segmentation des clients de Tunisie Telecom. Elle offre une interface intuitive pour explorer les différents segments de clients et comprendre leurs caractéristiques principales.
@@ -18,6 +19,93 @@ Cette application web permet de visualiser et d'analyser la segmentation des cli
 2. Naviguez vers le dossier du projet
 3. Exécutez la commande : `python src/web/app.py`
 4. Accédez à l'application via votre navigateur à l'adresse : `http://localhost:5000`
+
+## Utilisation de Jupyter
+
+### Installation de Jupyter
+1. Assurez-vous d'être dans votre environnement virtuel :
+```bash
+# Windows
+venv\Scripts\activate
+
+# Linux/Mac
+source venv/bin/activate
+```
+
+2. Installez Jupyter :
+```bash
+pip install jupyter notebook
+```
+
+### Lancement de Jupyter
+1. Dans le terminal, naviguez vers le dossier du projet
+2. Lancez Jupyter Notebook :
+```bash
+jupyter notebook
+```
+3. Votre navigateur s'ouvrira automatiquement sur l'interface Jupyter
+
+### Structure des Notebooks
+Les notebooks sont organisés dans le dossier `notebooks/` :
+- `01_chargement_donnees.ipynb` : Chargement et exploration des données
+- `02_preprocessing.ipynb` : Prétraitement des données
+- `03_segmentation.ipynb` : Analyse de segmentation
+- `04_visualisation.ipynb` : Création des visualisations
+- `05_rapports.ipynb` : Génération des rapports
+
+### Avantages de Jupyter
+- **Interactivité** : Exécutez le code cellule par cellule
+- **Documentation** : Mélangez code et explications
+- **Visualisation** : Affichez les graphiques directement
+- **Export** : Exportez en PDF ou HTML
+
+### Exemple d'Utilisation
+```python
+# Dans un notebook
+import pandas as pd
+from src.models.segmentation import CustomerSegmentation
+from src.models.visualization import SegmentationVisualizer
+
+# Chargement des données
+df = pd.read_csv('data/raw/donnees_clients.csv')
+
+# Création du modèle
+model = CustomerSegmentation()
+model.fit(df)
+
+# Visualisation
+visualizer = SegmentationVisualizer(model)
+visualizer.plot_cluster_distribution()
+```
+
+### Bonnes Pratiques
+1. **Organisation** :
+   - Créez un nouveau notebook pour chaque analyse
+   - Nommez clairement vos notebooks
+   - Gardez une copie de sauvegarde
+
+2. **Documentation** :
+   - Ajoutez des cellules Markdown pour expliquer
+   - Documentez vos hypothèses
+   - Incluez des exemples d'utilisation
+
+3. **Performance** :
+   - Nettoyez les outputs régulièrement
+   - Redémarrez le kernel si nécessaire
+   - Sauvegardez les résultats importants
+
+### Intégration avec l'Application Web
+Vous pouvez :
+1. Développer vos analyses dans Jupyter
+2. Exporter les visualisations
+3. Utiliser le code dans l'application web
+4. Partager les résultats via l'interface
+
+### Astuces
+- Utilisez `%matplotlib inline` pour les graphiques
+- Activez les extensions Jupyter utiles
+- Utilisez les raccourcis clavier pour plus d'efficacité
+- Sauvegardez régulièrement votre travail
 
 ## Fonctionnalités
 

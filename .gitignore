@@ -44,7 +44,6 @@ notebooks/**/*.xlsx
 notebooks/**/*.pdf
 
 # Données
-data/raw/*
 data/processed/*
 data/interim/*
 data/external/*
@@ -52,7 +51,7 @@ data/external/*
 !data/processed/.gitkeep
 !data/interim/.gitkeep
 !data/external/.gitkeep
-*.csv
+#*.csv
 *.xlsx
 *.xls
 *.db
