@@ -151,7 +151,7 @@ Pour toute question ou problème :
 3. Contactez l'équipe de support
 
 ---
-Pour plus d'informations ou en cas de problème, contactez [votre-email@domaine.com]
+Pour plus d'informations ou en cas de problème, contactez [lucchuala@gmail.com]
 
 # Demarer la version web du projet 
 ```
