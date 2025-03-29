@@ -8,11 +8,12 @@ from flask import Flask, render_template, jsonify
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.utils
 from plotly.subplots import make_subplots
 import json
 
 from config import (
-    PROCESSED_DATA_PATH,
+    RAW_DATA_PATH,
     FIGURES_PATH,
     SEGMENT_LABELS,
     COMMERCIAL_OFFERS
@@ -21,13 +22,16 @@ from config import (
 app = Flask(__name__)
 
 def load_data():
-    """Charge les données prétraitées."""
-    data_path = Path(PROCESSED_DATA_PATH) / 'donnees_pretraitees.csv'
+    """Charge les données brutes."""
+    data_path = Path(RAW_DATA_PATH) / 'donnees_clients.csv'
     return pd.read_csv(data_path)
 
 def create_cluster_distribution():
     """Crée le graphique de distribution des clusters."""
     df = load_data()
+    # Simulation de segments pour la démonstration
+    df['segment'] = pd.qcut(df['montant_consommation'], q=5, labels=SEGMENT_LABELS)
+    
     fig = px.pie(
         df,
         names='segment',
@@ -39,32 +43,37 @@ def create_cluster_distribution():
 def create_feature_importance():
     """Crée le graphique d'importance des features."""
     df = load_data()
+    # Simulation de segments pour la démonstration
+    df['segment'] = pd.qcut(df['montant_consommation'], q=5, labels=SEGMENT_LABELS)
+    
     features = ['age', 'montant_consommation', 'nombre_appels', 'volume_data', 'nombre_sms']
     
-    fig = make_subplots(rows=2, cols=2, subplot_titles=features)
+    fig = go.Figure()
     
-    for i, feature in enumerate(features, 1):
-        row = (i-1) // 2 + 1
-        col = (i-1) % 2 + 1
-        
-        for segment in df['segment'].unique():
-            segment_data = df[df['segment'] == segment]
-            fig.add_trace(
-                go.Box(
-                    y=segment_data[feature],
-                    name=f'Segment {segment}',
-                    boxpoints='outliers',
-                    showlegend=(i == 1)
-                ),
-                row=row, col=col
-            )
+    for feature in features:
+        fig.add_trace(go.Box(
+            y=df[feature],
+            x=df['segment'],
+            name=feature,
+            boxpoints='outliers'
+        ))
             
-    fig.update_layout(height=800, title_text="Distribution des Features par Segment")
+    fig.update_layout(
+        height=600,
+        title_text="Distribution des Features par Segment",
+        xaxis_title="Segment",
+        yaxis_title="Valeur",
+        showlegend=True,
+        boxmode='group'
+    )
     return json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
 
 def create_cluster_profiles():
     """Crée le graphique des profils des clusters."""
     df = load_data()
+    # Simulation de segments pour la démonstration
+    df['segment'] = pd.qcut(df['montant_consommation'], q=5, labels=SEGMENT_LABELS)
+    
     features = ['age', 'montant_consommation', 'nombre_appels', 'volume_data', 'nombre_sms']
     
     profiles = df.groupby('segment')[features].mean()
@@ -76,7 +85,7 @@ def create_cluster_profiles():
             r=profiles.loc[segment],
             theta=features,
             fill='toself',
-            name=f'Segment {segment}'
+            name=segment
         ))
         
     fig.update_layout(
@@ -111,15 +120,21 @@ def cluster_profiles():
 def segment_details():
     """API pour les détails des segments."""
     df = load_data()
+    # Simulation de segments pour la démonstration
+    df['segment'] = pd.qcut(df['montant_consommation'], q=5, labels=SEGMENT_LABELS)
+    
+    # Colonnes numériques uniquement
+    numeric_columns = df.select_dtypes(include=['int64', 'float64']).columns
+    
     details = {}
     
     for segment in df['segment'].unique():
         segment_data = df[df['segment'] == segment]
-        details[segment] = {
+        details[str(segment)] = {
             'size': len(segment_data),
             'percentage': len(segment_data) / len(df) * 100,
-            'mean_values': segment_data.mean().to_dict(),
-            'offer': COMMERCIAL_OFFERS[SEGMENT_LABELS[segment]]
+            'mean_values': segment_data[numeric_columns].mean().to_dict(),
+            'offer': COMMERCIAL_OFFERS[segment]
         }
         
     return jsonify(details)
