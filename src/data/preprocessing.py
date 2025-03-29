@@ -4,11 +4,19 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.impute import SimpleImputer
 import sys
 import os
+from pathlib import Path
 
-# Add project root to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+# Ajout du répertoire parent au PYTHONPATH
+current_dir = Path(__file__).resolve().parent
+project_root = current_dir.parent.parent
+sys.path.append(str(project_root))
 
-from config import NUMERIC_FEATURES, CATEGORICAL_FEATURES
+from src.config import (
+    NUMERIC_FEATURES,
+    CATEGORICAL_FEATURES,
+    RAW_DATA_FILE,
+    PROCESSED_DATA_FILE
+)
 
 def check_missing_values(df):
     """
@@ -103,3 +111,113 @@ def preprocess_data(df, numeric_features=NUMERIC_FEATURES, categorical_features=
         processed_df = X_prepared.copy()
     
     return processed_df, X_prepared.values, feature_names
+
+class DataPreprocessor:
+    """
+    Classe pour le prétraitement des données des clients.
+    """
+    
+    def __init__(self):
+        self.scaler = StandardScaler()
+        self.features = NUMERIC_FEATURES
+    
+    def load_data(self, input_file):
+        """
+        Charge les données brutes depuis un fichier CSV.
+        
+        Args:
+            input_file (str): Chemin du fichier d'entrée
+            
+        Returns:
+            pd.DataFrame: DataFrame contenant les données brutes
+        """
+        return pd.read_csv(input_file)
+    
+    def handle_missing_values(self, df):
+        """
+        Gère les valeurs manquantes dans le DataFrame.
+        
+        Args:
+            df (pd.DataFrame): DataFrame d'entrée
+            
+        Returns:
+            pd.DataFrame: DataFrame avec les valeurs manquantes traitées
+        """
+        # Remplacer les valeurs manquantes par la médiane pour chaque colonne
+        for col in self.features:
+            df[col] = df[col].fillna(df[col].median())
+        return df
+    
+    def handle_outliers(self, df):
+        """
+        Gère les valeurs aberrantes dans le DataFrame.
+        
+        Args:
+            df (pd.DataFrame): DataFrame d'entrée
+            
+        Returns:
+            pd.DataFrame: DataFrame avec les valeurs aberrantes traitées
+        """
+        for col in self.features:
+            Q1 = df[col].quantile(0.25)
+            Q3 = df[col].quantile(0.75)
+            IQR = Q3 - Q1
+            lower_bound = Q1 - 1.5 * IQR
+            upper_bound = Q3 + 1.5 * IQR
+            
+            # Remplacer les valeurs aberrantes par les bornes
+            df[col] = df[col].clip(lower_bound, upper_bound)
+        return df
+    
+    def scale_features(self, df):
+        """
+        Normalise les caractéristiques numériques.
+        
+        Args:
+            df (pd.DataFrame): DataFrame d'entrée
+            
+        Returns:
+            pd.DataFrame: DataFrame avec les caractéristiques normalisées
+        """
+        df_scaled = df.copy()
+        df_scaled[self.features] = self.scaler.fit_transform(df[self.features])
+        return df_scaled
+    
+    def preprocess(self, input_file, output_file):
+        """
+        Effectue le prétraitement complet des données.
+        
+        Args:
+            input_file (str): Chemin du fichier d'entrée
+            output_file (str): Chemin du fichier de sortie
+        """
+        # Chargement des données
+        df = self.load_data(input_file)
+        
+        # Traitement des valeurs manquantes
+        df = self.handle_missing_values(df)
+        
+        # Traitement des valeurs aberrantes
+        df = self.handle_outliers(df)
+        
+        # Normalisation des caractéristiques
+        df_scaled = self.scale_features(df)
+        
+        # Création du dossier de sortie s'il n'existe pas
+        output_path = Path(output_file)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Sauvegarde des données prétraitées
+        df_scaled.to_csv(output_file, index=False)
+        print(f"Données prétraitées sauvegardées dans {output_file}")
+        
+        return df_scaled
+
+if __name__ == "__main__":
+    # Création et utilisation du préprocesseur
+    preprocessor = DataPreprocessor()
+    df_processed = preprocessor.preprocess(RAW_DATA_FILE, PROCESSED_DATA_FILE)
+    
+    # Affichage des statistiques des données prétraitées
+    print("\nStatistiques des données prétraitées :")
+    print(df_processed.describe())

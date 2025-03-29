@@ -2,214 +2,172 @@
 Module de segmentation des clients Tunisie Telecom.
 """
 
-import numpy as np
 import pandas as pd
+import numpy as np
 from typing import Dict, List, Tuple, Optional
 from sklearn.cluster import KMeans, DBSCAN
 from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+from pathlib import Path
+import sys
+import os
 
-from config import (
+# Ajout du répertoire parent au PYTHONPATH
+current_dir = Path(__file__).resolve().parent
+project_root = current_dir.parent.parent
+sys.path.append(str(project_root))
+
+from src.config import (
     CLUSTERING_PARAMS,
     SEGMENT_LABELS,
-    COMMERCIAL_OFFERS
+    COMMERCIAL_OFFERS,
+    NUMERIC_FEATURES,
+    PROCESSED_DATA_FILE,
+    CLUSTERS_FILE,
+    N_CLUSTERS,
+    RANDOM_STATE
 )
 
 class CustomerSegmentation:
-    """Classe pour la segmentation des clients."""
+    """
+    Classe pour la segmentation des clients.
+    """
     
-    def __init__(self, n_clusters: int = 5):
-        """
-        Initialise le modèle de segmentation.
-        
-        Parameters
-        ----------
-        n_clusters : int, default=5
-            Nombre de clusters à créer
-        """
-        self.n_clusters = n_clusters
-        self.kmeans = KMeans(
-            n_clusters=n_clusters,
+    def __init__(self):
+        self.model = KMeans(
+            n_clusters=CLUSTERING_PARAMS['kmeans']['n_clusters'],
             random_state=CLUSTERING_PARAMS['kmeans']['random_state'],
             n_init=CLUSTERING_PARAMS['kmeans']['n_init']
         )
-        self.dbscan = DBSCAN(
-            eps=CLUSTERING_PARAMS['dbscan']['eps'],
-            min_samples=CLUSTERING_PARAMS['dbscan']['min_samples']
-        )
-        self.pca = PCA(n_components=2)
-        self.scaler = StandardScaler()
-        self.labels = None
-        self.feature_importance = None
-        self.feature_names = None
-        self.columns_to_exclude = ['customer_id', 'date_abonnement']
-        
-    def _prepare_data(self, X: pd.DataFrame) -> pd.DataFrame:
+        self.features = NUMERIC_FEATURES
+    
+    def load_data(self, input_file):
         """
-        Prépare les données pour la segmentation.
+        Charge les données prétraitées depuis un fichier CSV.
         
-        Parameters
-        ----------
-        X : pd.DataFrame
-            Données brutes
+        Args:
+            input_file (str): Chemin du fichier d'entrée
             
-        Returns
-        -------
-        pd.DataFrame
-            Données nettoyées
+        Returns:
+            pd.DataFrame: DataFrame contenant les données prétraitées
         """
-        return X.drop(columns=[col for col in self.columns_to_exclude if col in X.columns])
-        
-    def fit(self, X: pd.DataFrame, method: str = 'kmeans') -> None:
+        return pd.read_csv(input_file)
+    
+    def fit(self, X):
         """
-        Ajuste le modèle de segmentation.
+        Entraîne le modèle de segmentation.
         
-        Parameters
-        ----------
-        X : pd.DataFrame
-            Données à segmenter
-        method : str, default='kmeans'
-            Méthode de clustering à utiliser ('kmeans' ou 'dbscan')
-        """
-        # Préparation des données
-        X_clean = self._prepare_data(X)
-        
-        # Sauvegarde des noms des features
-        self.feature_names = X_clean.columns.tolist()
-        
-        # Normalisation des données
-        X_scaled = self.scaler.fit_transform(X_clean)
-        
-        # Réduction de dimensionnalité pour visualisation
-        X_pca = self.pca.fit_transform(X_scaled)
-        
-        # Application du clustering
-        if method == 'kmeans':
-            self.labels = self.kmeans.fit_predict(X_scaled)
-        elif method == 'dbscan':
-            self.labels = self.dbscan.fit_predict(X_scaled)
-        else:
-            raise ValueError("Méthode de clustering non supportée")
+        Args:
+            X (pd.DataFrame): Données d'entrée
             
-        # Calcul de l'importance des features
-        self._compute_feature_importance(X_clean)
-        
-    def _compute_feature_importance(self, X: pd.DataFrame) -> None:
-        """Calcule l'importance des features pour chaque cluster."""
-        feature_importance = {}
-        
-        for cluster in range(self.n_clusters):
-            cluster_data = X[self.labels == cluster]
-            importance = cluster_data.std().sort_values(ascending=False)
-            feature_importance[cluster] = importance
-            
-        self.feature_importance = feature_importance
-        
-    def evaluate_clustering(self, X: pd.DataFrame) -> Dict[str, float]:
+        Returns:
+            self: Instance de la classe
         """
-        Évalue la qualité du clustering.
-        
-        Parameters
-        ----------
-        X : pd.DataFrame
-            Données utilisées pour le clustering
-            
-        Returns
-        -------
-        Dict[str, float]
-            Scores d'évaluation
-        """
-        # Préparation des données
-        X_clean = self._prepare_data(X)
-        X_scaled = self.scaler.transform(X_clean)
-        
-        scores = {
-            'silhouette': silhouette_score(X_scaled, self.labels),
-            'calinski_harabasz': calinski_harabasz_score(X_scaled, self.labels),
-            'davies_bouldin': davies_bouldin_score(X_scaled, self.labels)
-        }
-        
-        return scores
-        
-    def get_cluster_profiles(self, X: pd.DataFrame) -> Dict[int, Dict]:
-        """
-        Génère les profils des clusters.
-        
-        Parameters
-        ----------
-        X : pd.DataFrame
-            Données originales
-            
-        Returns
-        -------
-        Dict[int, Dict]
-            Profils des clusters
-        """
-        # Préparation des données
-        X_clean = self._prepare_data(X)
-        profiles = {}
-        
-        for cluster in range(self.n_clusters):
-            cluster_data = X_clean[self.labels == cluster]
-            
-            profile = {
-                'size': len(cluster_data),
-                'percentage': len(cluster_data) / len(X_clean) * 100,
-                'mean_values': cluster_data.mean().to_dict(),
-                'std_values': cluster_data.std().to_dict(),
-                'key_features': self.feature_importance[cluster].head(3).to_dict()
-            }
-            
-            profiles[cluster] = profile
-            
-        return profiles
-        
-    def get_commercial_offers(self) -> Dict[int, Dict]:
-        """
-        Génère les offres commerciales pour chaque segment.
-        
-        Returns
-        -------
-        Dict[int, Dict]
-            Offres commerciales par segment
-        """
-        offers = {}
-        
-        for cluster in range(self.n_clusters):
-            segment_name = SEGMENT_LABELS[cluster]
-            offers[cluster] = COMMERCIAL_OFFERS[segment_name]
-            
-        return offers
-        
-    def predict(self, X: pd.DataFrame) -> np.ndarray:
+        self.model.fit(X[self.features])
+        return self
+    
+    def predict(self, X):
         """
         Prédit les segments pour de nouvelles données.
         
-        Parameters
-        ----------
-        X : pd.DataFrame
-            Nouvelles données
+        Args:
+            X (pd.DataFrame): Données d'entrée
             
-        Returns
-        -------
-        np.ndarray
-            Labels des segments prédits
+        Returns:
+            np.array: Labels des segments prédits
         """
-        # Préparation des données
-        X_clean = self._prepare_data(X)
-        X_scaled = self.scaler.transform(X_clean)
-        return self.kmeans.predict(X_scaled)
+        return self.model.predict(X[self.features])
+    
+    def evaluate(self, X):
+        """
+        Évalue la qualité de la segmentation.
         
-    def get_cluster_centers(self) -> pd.DataFrame:
+        Args:
+            X (pd.DataFrame): Données d'entrée
+            
+        Returns:
+            dict: Métriques d'évaluation
         """
-        Retourne les centres des clusters.
+        labels = self.model.labels_
+        silhouette = silhouette_score(X[self.features], labels)
         
-        Returns
-        -------
-        pd.DataFrame
-            Centres des clusters
+        metrics = {
+            "silhouette_score": silhouette,
+            "inertia": self.model.inertia_
+        }
+        
+        return metrics
+    
+    def get_cluster_profiles(self, X):
         """
-        centers = self.kmeans.cluster_centers_
-        centers = self.scaler.inverse_transform(centers)
-        return pd.DataFrame(centers, columns=self.feature_names) 
+        Calcule les profils des segments.
+        
+        Args:
+            X (pd.DataFrame): Données d'entrée
+            
+        Returns:
+            pd.DataFrame: Profils des segments
+        """
+        X_with_clusters = X.copy()
+        X_with_clusters['cluster'] = self.model.labels_
+        
+        profiles = []
+        for cluster in range(CLUSTERING_PARAMS['kmeans']['n_clusters']):
+            cluster_data = X_with_clusters[X_with_clusters['cluster'] == cluster]
+            profile = cluster_data[self.features].mean()
+            profile['size'] = len(cluster_data)
+            profile['percentage'] = len(cluster_data) / len(X) * 100
+            profiles.append(profile)
+        
+        cluster_profiles = pd.DataFrame(profiles)
+        cluster_profiles.index = [SEGMENT_LABELS[i] for i in range(CLUSTERING_PARAMS['kmeans']['n_clusters'])]
+        
+        return cluster_profiles
+    
+    def segment_clients(self, input_file, output_file):
+        """
+        Effectue la segmentation complète des clients.
+        
+        Args:
+            input_file (str): Chemin du fichier d'entrée
+            output_file (str): Chemin du fichier de sortie
+        """
+        # Chargement des données
+        df = self.load_data(input_file)
+        
+        # Entraînement du modèle
+        self.fit(df)
+        
+        # Prédiction des segments
+        df['segment'] = self.predict(df)
+        df['segment_label'] = df['segment'].map(SEGMENT_LABELS)
+        
+        # Évaluation du modèle
+        metrics = self.evaluate(df)
+        print("\nMétriques d'évaluation :")
+        for metric, value in metrics.items():
+            print(f"{metric}: {value:.4f}")
+        
+        # Calcul des profils des segments
+        profiles = self.get_cluster_profiles(df)
+        print("\nProfils des segments :")
+        print(profiles)
+        
+        # Création du dossier de sortie s'il n'existe pas
+        output_path = Path(output_file)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Sauvegarde des résultats
+        df.to_csv(output_file, index=False)
+        print(f"\nRésultats de la segmentation sauvegardés dans {output_file}")
+        
+        return df, profiles, metrics
+
+if __name__ == "__main__":
+    # Création et utilisation du segmenteur
+    segmenter = CustomerSegmentation()
+    df_segmented, profiles, metrics = segmenter.segment_clients(
+        PROCESSED_DATA_FILE,
+        CLUSTERS_FILE
+    ) 
