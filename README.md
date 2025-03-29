@@ -152,3 +152,13 @@ Pour toute question ou problème :
 
 ---
 Pour plus d'informations ou en cas de problème, contactez [votre-email@domaine.com]
+
+# Demarer la version web du projet 
+```
+$env:PYTHONPATH = "."; python src/web/app.py
+```
+
+# Demare la version code 
+```python
+python main.py
+```

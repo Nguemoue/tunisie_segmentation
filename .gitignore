@@ -38,12 +38,28 @@ env/
 # Jupyter Notebook
 .ipynb_checkpoints
 *.ipynb_checkpoints/
+notebooks/**/*.png
+notebooks/**/*.csv
+notebooks/**/*.xlsx
+notebooks/**/*.pdf
 
 # Données
 data/raw/*
 data/processed/*
+data/interim/*
+data/external/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!data/interim/.gitkeep
+!data/external/.gitkeep
+*.csv
+*.xlsx
+*.xls
+*.db
+*.sqlite
+*.sqlite3
+*.parquet
+*.feather
 
 # Logs et rapports
 logs/*
@@ -52,10 +68,25 @@ reports/*
 !reports/.gitkeep
 figures/*
 !figures/.gitkeep
+*.html
+*.pdf
+*.docx
+*.pptx
 
 # Modèles sauvegardés
 models/saved/*
+models/checkpoints/*
+models/tensorboard/*
 !models/saved/.gitkeep
+!models/checkpoints/.gitkeep
+!models/tensorboard/.gitkeep
+*.h5
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.onnx
+*.mlmodel
 
 # Fichiers système
 .DS_Store
@@ -64,12 +95,18 @@ Thumbs.db
 *.pot
 *.pyc
 *.pyo
+desktop.ini
+.directory
 
 # Fichiers de configuration locaux
 instance/
 .env
 .env.*
 !.env.example
+config/local.py
+*.local.py
+secrets.yaml
+credentials.json
 
 # Fichiers de cache
 .cache/
@@ -79,6 +116,8 @@ htmlcov/
 coverage.xml
 *.cover
 .hypothesis/
+.mypy_cache/
+.ruff_cache/
 
 # Distribution / packaging
 *.manifest
@@ -88,7 +127,11 @@ pip-delete-this-directory.txt
 
 # Documentation générée
 docs/_build/
+docs/_static/
+docs/_templates/
 site/
+*.rst
+!docs/*.rst
 
 # Fichiers temporaires
 tmp/
@@ -96,4 +139,25 @@ temp/
 *.tmp
 *.bak
 *.swp
-*~ 
+*~
+
+# Fichiers spécifiques au projet
+*.config.json
+api_keys.txt
+tunisie_telecom_*.log
+segmentation_*.png
+cluster_*.csv
+profile_*.json
+metrics_*.json
+evaluation_*.txt
+backup_*.zip
+
+# Web application
+src/web/static/uploads/*
+!src/web/static/uploads/.gitkeep
+src/web/static/generated/*
+!src/web/static/generated/.gitkeep
+node_modules/
+package-lock.json
+*.min.css
+*.min.js 
